@@ -1,8 +1,5 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - base/tekton/tasks/01-task-bandit.yaml
-  - base/tekton/tasks/01-task-njsscan.yaml
-  - base/tekton/tasks/02-task-build.yaml
+  - base/tekton/tasks/01-apply-manifest.yaml
   - base/tekton/pipeline/03-pipeline.yaml
-namespace: aa-fibre
