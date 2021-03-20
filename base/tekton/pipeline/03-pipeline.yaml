@@ -1,0 +1,130 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: build-and-deploy
+  namespace: devsecops
+spec:
+  workspaces:
+  - name: shared-workspace
+  tasks:
+
+  - name: git-clone-fe
+    taskRef:
+      kind: ClusterTask
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: shared-workspace
+    params:
+      - name: url
+        value: 'https://github.com/mancubus77/devsecops-demo-fe.git'
+      - name: submodules
+        value: 'true'
+      - name: depth
+        value: '1'
+      - name: sslVerify
+        value: 'true'
+      - name: deleteExisting
+        value: 'true'
+      - name: verbose
+        value: 'true'
+      - name: subdirectory
+        value: fe
+
+  - name: buildah-fe
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    taskRef:
+      kind: ClusterTask
+      name: buildah
+    params:
+      - name: IMAGE
+        value: >-
+          image-registry.openshift-image-registry.svc:5000/$(context.taskRun.namespace)/frontend
+      - name: BUILDER_IMAGE
+        value: >-
+          registry.redhat.io/rhel8/buildah@sha256:180c4d9849b6ab0e5465d30d4f3a77765cf0d852ca1cb1efb59d6e8c9f90d467
+      - name: STORAGE_DRIVER
+        value: overlay
+      - name: DOCKERFILE
+        value: ./Dockerfile
+      - name: CONTEXT
+        value: fe/app/
+      - name: TLSVERIFY
+        value: 'false'
+      - name: FORMAT
+        value: oci
+    runAfter:
+      - git-clone-fe
+
+  - name: k8s-deploy-fe
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    params:
+      - name: subdirectory
+        value: fe
+    taskRef:
+      name: apply-manifests
+    runAfter:
+      - buildah-fe
+
+  - name: git-clone-be
+    taskRef:
+      kind: ClusterTask
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: shared-workspace
+    params:
+      - name: url
+        value: 'https://github.com/mancubus77/devsecops-demo-be.git'
+      - name: submodules
+        value: 'true'
+      - name: depth
+        value: '1'
+      - name: sslVerify
+        value: 'true'
+      - name: deleteExisting
+        value: 'true'
+      - name: verbose
+        value: 'true'
+
+  - name: buildah-be
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    taskRef:
+      kind: ClusterTask
+      name: buildah
+    params:
+      - name: IMAGE
+        value: >-
+          image-registry.openshift-image-registry.svc:5000/$(context.taskRun.namespace)/backend
+      - name: BUILDER_IMAGE
+        value: >-
+          registry.redhat.io/rhel8/buildah@sha256:180c4d9849b6ab0e5465d30d4f3a77765cf0d852ca1cb1efb59d6e8c9f90d467
+      - name: STORAGE_DRIVER
+        value: overlay
+      - name: DOCKERFILE
+        value: ./Dockerfile
+      - name: CONTEXT
+        value: app/
+      - name: TLSVERIFY
+        value: 'false'
+      - name: FORMAT
+        value: oci
+    runAfter:
+      - git-clone-be
+
+  - name: k8s-deploy-be
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    taskRef:
+      name: apply-manifests
+    runAfter:
+      - buildah-be
+
+
