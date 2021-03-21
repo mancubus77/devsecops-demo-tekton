@@ -1,0 +1,23 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: bandit-scan
+spec:
+  description: >-
+    This tasks scans Python code with bandit package
+  params:
+    - name: subdirectory
+      type: string
+      default: ""
+  workspaces:
+  - name: source
+  steps:
+  - name: scan
+    image: registry.redhat.io/rhel8/python-38
+    workingDir: /workspace/source/$(params.subdirectory)
+    script: |
+      pip3 install bandit
+      bandit -r .
+    securityContext:
+      privileged: true

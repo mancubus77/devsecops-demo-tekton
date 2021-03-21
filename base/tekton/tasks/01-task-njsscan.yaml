@@ -1,0 +1,24 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: nodejs-scan
+spec:
+  description: >-
+    This tasks scans Python code with njsscan package
+  workspaces:
+  - name: source
+  params:
+    - name: subdirectory
+      type: string
+      default: ""
+
+  steps:
+  - name: nodejs-scan
+    image: registry.redhat.io/rhel8/python-38
+    workingDir: /workspace/source/$(params.subdirectory)
+    script: |
+      pip3 install --upgrade njsscan
+      njsscan .
+    securityContext:
+      privileged: true

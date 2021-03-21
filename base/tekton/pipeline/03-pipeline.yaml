@@ -31,32 +31,46 @@ spec:
       - name: subdirectory
         value: fe
 
-  - name: buildah-fe
+  - name: kube-linter-fe
+    taskRef:
+      name: kube-linter
+    params:
+    - name: subdirectory
+      value: fe/kubernetes/
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    runAfter:
+      - git-clone-fe
+
+  - name: nodejs-scanner
+    taskRef:
+      name: nodejs-scan
+    params:
+    - name: subdirectory
+      value: fe
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    runAfter:
+      - git-clone-fe
+
+  - name: build-scan-fe
     workspaces:
     - name: source
       workspace: shared-workspace
     taskRef:
-      kind: ClusterTask
-      name: buildah
+      name: build-and-scan
     params:
-      - name: IMAGE
-        value: >-
-          image-registry.openshift-image-registry.svc:5000/$(context.taskRun.namespace)/frontend
-      - name: BUILDER_IMAGE
-        value: >-
-          registry.redhat.io/rhel8/buildah@sha256:180c4d9849b6ab0e5465d30d4f3a77765cf0d852ca1cb1efb59d6e8c9f90d467
-      - name: STORAGE_DRIVER
-        value: overlay
-      - name: DOCKERFILE
-        value: ./Dockerfile
+      - name: out-image-name
+        value: frontend
       - name: CONTEXT
-        value: fe/app/
-      - name: TLSVERIFY
-        value: 'false'
-      - name: FORMAT
-        value: oci
+        value: app/
+      - name: subdirectory
+        value: fe/
     runAfter:
-      - git-clone-fe
+      - nodejs-scanner
+      - kube-linter-fe
 
   - name: k8s-deploy-fe
     workspaces:
@@ -68,7 +82,7 @@ spec:
     taskRef:
       name: apply-manifests
     runAfter:
-      - buildah-fe
+      - build-scan-fe
 
   - name: git-clone-be
     taskRef:
@@ -91,32 +105,42 @@ spec:
       - name: verbose
         value: 'true'
 
-  - name: buildah-be
+  - name: python-scanner
+    taskRef:
+      name: bandit-scan
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    runAfter:
+      - git-clone-be
+
+  - name: kube-linter-be
+    taskRef:
+      name: kube-linter
+    params:
+    - name: subdirectory
+      value: fe/kubernetes/
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    runAfter:
+      - git-clone-be
+
+
+  - name: build-scan-be
     workspaces:
     - name: source
       workspace: shared-workspace
     taskRef:
-      kind: ClusterTask
-      name: buildah
+      name: build-and-scan
     params:
-      - name: IMAGE
-        value: >-
-          image-registry.openshift-image-registry.svc:5000/$(context.taskRun.namespace)/backend
-      - name: BUILDER_IMAGE
-        value: >-
-          registry.redhat.io/rhel8/buildah@sha256:180c4d9849b6ab0e5465d30d4f3a77765cf0d852ca1cb1efb59d6e8c9f90d467
-      - name: STORAGE_DRIVER
-        value: overlay
-      - name: DOCKERFILE
-        value: ./Dockerfile
+      - name: out-image-name
+        value: frontend
       - name: CONTEXT
         value: app/
-      - name: TLSVERIFY
-        value: 'false'
-      - name: FORMAT
-        value: oci
     runAfter:
-      - git-clone-be
+      - python-scanner
+      - kube-linter-be
 
   - name: k8s-deploy-be
     workspaces:
@@ -125,6 +149,6 @@ spec:
     taskRef:
       name: apply-manifests
     runAfter:
-      - buildah-be
+      - build-scan-be
 
 

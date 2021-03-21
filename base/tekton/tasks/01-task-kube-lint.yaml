@@ -1,0 +1,36 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: kube-linter
+spec:
+  description: >-
+    Kube Linter 
+  workspaces:
+  - name: source
+  params:
+    - name: subdirectory
+      type: string
+      default: ""
+
+  steps:
+  - name: nodejs-scan
+    image: stackrox/kube-linter:latest-alpine
+    workingDir: /workspace/source/$(params.subdirectory)
+    command:
+    - /bin/sh
+    args:
+    - -c
+    - |
+      /kube-linter lint .
+      my_exit_code=$?
+      echo "RESULT 1:--- $my_exit_code"
+      if [ ${my_exit_code} == 1 ]; then
+          echo "We know that kube-linter do not support OpenShift Yet. Bypassing."
+          exit 0;
+      else
+          echo "Manifest doesn't have anyy issues"
+      fi;
+    volumeMounts:
+    securityContext:
+      privileged: true
