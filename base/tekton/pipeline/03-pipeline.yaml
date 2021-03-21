@@ -99,11 +99,13 @@ spec:
       - name: depth
         value: '1'
       - name: sslVerify
-        value: 'true'
+        value: 'false'
       - name: deleteExisting
         value: 'true'
       - name: verbose
         value: 'true'
+      - name: revision
+        value: 'clear'
 
   - name: python-scanner
     taskRef:
@@ -135,9 +137,11 @@ spec:
       name: build-and-scan
     params:
       - name: out-image-name
-        value: frontend
+        value: backend
       - name: CONTEXT
         value: app/
+      - name: TLSVERIFY
+        value: 'false'
     runAfter:
       - python-scanner
       - kube-linter-be

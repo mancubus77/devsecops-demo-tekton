@@ -61,8 +61,8 @@ spec:
     #image: docker
     workingDir: $(workspaces.source.path)/$(params.subdirectory)
     script: |
-      buildah bud --tls-verify=$(inputs.params.TLSVERIFY) --format=docker -f $(inputs.params.DOCKERFILE) -t image4scan $(params.CONTEXT)
-      buildah push image4scan docker-daemon:image4scan:scan 
+      buildah bud --tls-verify=$(inputs.params.TLSVERIFY) --format=docker -f $(inputs.params.DOCKERFILE) -t image4scan:$(params.out-image-name) $(params.CONTEXT)
+      buildah push image4scan:$(params.out-image-name) docker-daemon:image4scan:$(params.out-image-name)
     volumeMounts:
     - name: varlibcontainers
       mountPath: /var/lib/containers
@@ -86,7 +86,7 @@ spec:
       APP_IMAGE="${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}-temp:latest"
       echo "Trivy image scanning.... $APP_IMAGE"
       # Trivy scan
-      trivy --timeout 60m --exit-code 1 image4scan:scan
+      trivy --timeout 60m --exit-code 1 image4scan:$(params.out-image-name)
       # Trivy scan result processing
       my_exit_code=$?
       echo "RESULT 1:--- $my_exit_code"
@@ -112,7 +112,7 @@ spec:
     script: |
       buildah --storage-driver=$(params.STORAGE_DRIVER) push \
         $(params.PUSH_EXTRA_ARGS) --tls-verify=$(params.TLSVERIFY) \
-        image4scan \
+        image4scan:$(params.out-image-name) \
         docker://$(params.IMAGE-REGISTRY-URL)/$(context.taskRun.namespace)/$(params.out-image-name)
     volumeMounts:
     - name: varlibcontainers
