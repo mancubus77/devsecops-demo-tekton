@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: build-and-deploy
-  namespace: devsecops
+  namespace: akshat08-dev
 spec:
   workspaces:
   - name: shared-workspace
